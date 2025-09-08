@@ -1,2 +1,0 @@
-# LightCalc
-LightCalc
