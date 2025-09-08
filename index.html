@@ -1,0 +1,2320 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Помощник светотехника</title>
+    
+    <!-- jsPDF library for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <style>
+        /* CSS Custom Properties для темной темы */
+        :root {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --bg-tertiary: #3a3a3a;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+            --accent: #00a8ff;
+            --accent-hover: #0084cc;
+            --success: #4caf50;
+            --warning: #ff9800;
+            --danger: #f44336;
+            --border: #444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-secondary);
+            padding: 0.0rem;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.2rem;
+            color: var(--accent);
+        }
+
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+
+        /* Navigation */
+        .nav-container {
+            display: flex;
+            min-height: calc(100vh - 60px);
+        }
+
+        .sidebar {
+            width: 250px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+        }
+
+        .nav-item {
+            display: block;
+            padding: 1rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-bottom: 1px solid var(--border);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+
+        .nav-item:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            padding-left: 1.5rem;
+        }
+
+        .nav-item.active {
+            background: var(--accent);
+            color: var(--text-primary);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+            max-width: 100%;
+        }
+
+        .calculator {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .calculator.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .calculator h2 {
+            color: var(--accent);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--accent);
+            font-size: 1.3rem;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.3rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 0.6rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            border-radius: 4px;
+            font-size: 0.95rem;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            margin: 0.5rem 0;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        button {
+            padding: 0.6rem 1.2rem;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+            white-space: nowrap;
+        }
+
+        button:hover {
+            background: var(--accent-hover);
+        }
+
+        button.secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        button.danger {
+            background: var(--danger);
+        }
+
+        /* Tables */
+        .table-wrapper {
+            overflow-x: auto;
+            margin-top: 1rem;
+        }
+
+        table {
+            width: 100%;
+            min-width: 300px;
+            border-collapse: collapse;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 0.5rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.85rem;
+        }
+
+        th {
+            background: var(--bg-tertiary);
+            color: var(--accent);
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        tr:hover {
+            background: var(--bg-tertiary);
+        }
+
+        /* Grid Layout */
+        .grid {
+            display: grid;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .grid-2 {
+            grid-template-columns: 1fr;
+        }
+
+        @media (min-width: 480px) {
+            .grid-2 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .grid-3 {
+            grid-template-columns: 1fr;
+        }
+
+        @media (min-width: 768px) {
+            .grid-3 {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-secondary);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin-bottom: 1rem;
+        }
+
+        .card h3 {
+            color: var(--accent);
+            margin-bottom: 0.75rem;
+            font-size: 1.1rem;
+        }
+
+        /* DIP Switch Styles */
+        .dip-switches {
+            display: flex;
+            gap: 0.3rem;
+            margin: 1rem 0;
+            padding: 0.75rem;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            overflow-x: auto;
+            justify-content: center;
+        }
+
+        .dip-switch-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 30px;
+        }
+
+        .dip-switch {
+            width: 30px;
+            height: 60px;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border);
+            border-radius: 4px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .dip-switch-toggle {
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            background: var(--accent);
+            border-radius: 2px;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: all 0.3s ease;
+        }
+
+        .dip-switch.on .dip-switch-toggle {
+            top: 3px;
+        }
+
+        .dip-switch.off .dip-switch-toggle {
+            bottom: 3px;
+            background: var(--bg-primary);
+        }
+
+        .dip-switch-label {
+            text-align: center;
+            margin-top: 0.3rem;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+
+        /* Progress Bar */
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--success));
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            padding: 0 0.5rem;
+            color: white;
+            font-size: 0.85rem;
+        }
+
+        /* Visualization Canvas */
+        .visualization {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 1rem 0;
+            min-height: 200px;
+            overflow-x: auto;
+        }
+
+        /* Info Box */
+        .info-box {
+            background: var(--bg-tertiary);
+            border-left: 3px solid var(--accent);
+            padding: 0.75rem;
+            margin: 0.75rem 0;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* Phase Distribution */
+        .phase-box {
+            background: var(--bg-tertiary);
+            padding: 0.75rem;
+            border-radius: 4px;
+            margin: 0.5rem 0;
+        }
+
+        .phase-box h5 {
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1rem;
+            }
+
+            .menu-toggle {
+                display: block;
+            }
+
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 50px;
+                height: calc(100vh - 50px);
+                transform: translateX(-100%);
+                z-index: 99;
+                width: 200px;
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                padding: 0.75rem;
+            }
+
+            .card {
+                padding: 0.75rem;
+            }
+
+            button {
+                padding: 0.5rem 0.8rem;
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: 0.4rem;
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Utility Classes */
+        .mt-1 { margin-top: 0.5rem; }
+        .mt-2 { margin-top: 1rem; }
+        .mb-1 { margin-bottom: 0.5rem; }
+        .mb-2 { margin-bottom: 1rem; }
+        .text-center { text-align: center; }
+        .text-success { color: var(--success); }
+        .text-warning { color: var(--warning); }
+        .text-danger { color: var(--danger); }
+        .hidden { display: none; }
+        .small-text { font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+	<?xml version="1.0" encoding="UTF-8" standalone="no"?> 
+	<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="131"
+   height="42"
+   viewBox="0 0 34.660418 11.112502"
+   version="1.1"
+   id="svg1031"
+   inkscape:version="1.2.2 (732a01da63, 2022-12-09)"
+   sodipodi:docname="calc.svg"
+   inkscape:export-filename="AR Logo black simple.png"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview13"
+     pagecolor="#505050"
+     bordercolor="#eeeeee"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#505050"
+     showgrid="false"
+     inkscape:zoom="4"
+     inkscape:cx="134.375"
+     inkscape:cy="54.75"
+     inkscape:window-width="1920"
+     inkscape:window-height="1057"
+     inkscape:window-x="1912"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="g412" />
+  <defs
+     id="defs1028" />
+  <g
+     inkscape:label="Слой 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <g
+       id="g412"
+       transform="matrix(0.17926271,0,0,0.17926271,0.90856409,1.5828311)">
+      <g
+         id="g209648-7-6-69-0-7"
+         transform="matrix(2.1537652,0,0,1.957395,-127.45201,-162.74002)"
+         style="fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.227974;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         inkscape:export-filename="C:\Users\alexi\OneDrive\Documents\-=Рабочие документы=-\MY SITE\AR Logo\g209648-7-6-69-0-7.png"
+         inkscape:export-xdpi="96"
+         inkscape:export-ydpi="96">
+        <g
+           id="g1206-7"
+           style="fill:#000000;fill-opacity:1;stroke-width:0.142229;stroke-miterlimit:4;stroke-dasharray:none"
+           transform="matrix(1.5673826,0,0,1.5673826,-32.345105,-47.269934)">
+          <g
+             id="g5370"
+             transform="matrix(0.9391081,0,0,0.9391081,29.238042,18.265213)"
+             inkscape:export-filename="LOGO 100x100.png"
+             inkscape:export-xdpi="60.809242"
+             inkscape:export-ydpi="60.809242">
+            <ellipse
+               style="fill:#fd0000;fill-opacity:1;stroke:none;stroke-width:0.10129;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+               id="path1206-5-3-9"
+               cx="39.045197"
+               cy="76.989655"
+               rx="9.3113699"
+               ry="10.245507" />
+            <path
+               id="path38052-3-3-5-5-1-5-5-8-4-0"
+               style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:0.0584722;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+               d="m 42.126926,81.0993 c 0,0 0.561398,0.792226 0.805771,1.217446 0.567362,0.24034 1.748621,0.76266 2.555821,1.0341 l -1.73567,-1.28696 c -0.111185,0.0762 -0.326239,0.0225 -0.434706,-0.0596 -0.136629,-0.10364 -0.29701,-0.396998 -0.192537,-0.529521 0.10447,-0.132524 0.42424,-0.05606 0.560848,0.0476 0.106429,0.08099 0.223829,0.270691 0.179853,0.394171 l 1.697522,1.34261 c -0.464341,-0.70508 -1.643407,-2.152988 -1.643407,-2.152988 l -1.60805,-0.677224 z"
+               sodipodi:nodetypes="cccccscccccc" />
+            <path
+               id="path36750-2-4-2-7-6-3-7-5-7-7"
+               style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:0.0584723;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+               d="m 40.158792,78.193171 1.326377,1.073916 0.03958,-1.636453 c 2.163404,-0.05549 3.549753,-1.782434 3.551065,-3.849038 -0.0015,-2.066604 -1.478517,-3.719357 -3.64192,-3.774848 l -0.01102,-0.395678 -1.2344,-0.548374 z m 1.316085,-6.678855 c 1.251076,0.03208 2.206354,1.043304 2.259615,2.263007 0.03912,1.37978 -0.933485,2.334152 -2.198613,2.456377 z"
+               sodipodi:nodetypes="cccccccccccc" />
+            <path
+               id="path37401-5-3-9-0-2-1-7-1-4-6"
+               style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:0.0584723;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+               d="m 38.561527,68.403049 -2.896485,6.227195 0.978132,0.799823 1.799353,-3.048323 0.133056,4.525573 1.285438,1.058931 -7.17e-4,-9.036757 C 39.449,68.767479 39.175848,68.639782 38.561546,68.403049 Z m -3.772887,7.988737 -2.74308,5.76865 2.503016,-2.70486 1.150296,-2.402792 z m 3.836175,2.714815 0.06101,1.461429 1.180137,3.122776 -0.02502,-3.705652 z"
+               sodipodi:nodetypes="ccccccccccccccccccc" />
+            <path
+               id="path37539-0-6-1-8-4-8-74-6-1-5"
+               style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:0.0584721;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+               d="m 32.087343,72.315854 -0.392294,1.411865 10.165996,7.311764 0.262247,-0.91052 z" />
+          </g>
+        </g>
+      </g>
+      <text
+         xml:space="preserve"
+         style="font-weight:bold;font-size:28.8493px;font-family:Arial;-inkscape-font-specification:'Arial, Bold';fill:#ffffff;stroke-width:0.0940738"
+         x="46.20026"
+         y="30.676462"
+         id="text296"><tspan
+           sodipodi:role="line"
+           id="tspan294"
+           style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:20.9913px;font-family:Arial;-inkscape-font-specification:'Arial, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:0.0940738"
+           x="46.20026"
+           y="30.676462">LightCalc v1.2</tspan></text>
+      <text
+         xml:space="preserve"
+         style="font-weight:bold;font-size:181.051px;font-family:Arial;-inkscape-font-specification:'Arial, Bold';fill:#ffffff;stroke-width:0.59038"
+         x="265.29196"
+         y="45.698128"
+         id="text446"><tspan
+           sodipodi:role="line"
+           id="tspan444"
+           style="stroke-width:0.59038"
+           x="265.29196"
+           y="45.698128"> </tspan></text>
+    </g>
+  </g>
+</svg>
+ 
+        <h1> Помощник светотехника</h1>
+        <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+    </header>
+
+    <!-- Navigation Container -->
+    <div class="nav-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar" id="sidebar">
+            <a class="nav-item active" onclick="showCalculator('dmx', event)">DMX Адреса</a>
+            <a class="nav-item" onclick="showCalculator('dip', event)">DIP Switch</a>
+            <a class="nav-item" onclick="showCalculator('artnet', event)">Art-Net</a>
+            <a class="nav-item" onclick="showCalculator('power', event)">Энергопотребление</a>
+            <a class="nav-item" onclick="showCalculator('spacing', event)">Равномерный развес</a>
+            <a class="nav-item" onclick="showCalculator('load', event)">Нагрузка на ферме</a>
+            <a class="nav-item" onclick="showCalculator('cables', event)">Кабельные трассы</a>
+            <a class="nav-item" onclick="showCalculator('angles', event)">Углы освещения</a>
+            <a class="nav-item" onclick="showCalculator('color', event)">Цветовая температура</a>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- DMX Address Calculator -->
+            <div id="dmx" class="calculator active">
+                <h2>Калькулятор DMX адресов</h2>
+                
+                <div class="card">
+                    <h3>Добавить приборы</h3>
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label>Название прибора:</label>
+                            <input type="text" id="dmx-fixture-name" placeholder="Например: Spot 250">
+                        </div>
+                        <div class="form-group">
+                            <label>Количество каналов:</label>
+                            <input type="number" id="dmx-channels" min="1" max="512" value="16">
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label>Количество приборов:</label>
+                            <input type="number" id="dmx-quantity" min="1" value="1">
+                        </div>
+                        <div class="form-group">
+                            <label>DMX линия:</label>
+                            <select id="dmx-universe">
+                                <option value="1">Universe 1</option>
+                                <option value="2">Universe 2</option>
+                                <option value="3">Universe 3</option>
+                                <option value="4">Universe 4</option>
+                                <option value="5">Universe 5</option>
+                                <option value="6">Universe 6</option>
+                                <option value="7">Universe 7</option>
+                                <option value="8">Universe 8</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Стартовый адрес:</label>
+                        <input type="number" id="dmx-start" min="1" max="512" value="1">
+                    </div>
+                    
+                    <button onclick="addDMXFixture()">Добавить приборы</button>
+                    <button class="secondary" onclick="clearDMXTable()">Очистить</button>
+                    <button class="secondary" onclick="exportDMXtoPDF()">Экспорт PDF</button>
+                </div>
+
+                <div class="card">
+                    <h3>Заполненность DMX линий</h3>
+                    <div id="dmx-usage"></div>
+                </div>
+
+                <div class="card">
+                    <h3>Список приборов</h3>
+                    <div class="table-wrapper">
+                        <table id="dmx-table">
+                            <thead>
+                                <tr>
+                                    <th>№</th>
+                                    <th>Название</th>
+                                    <th>Univ</th>
+                                    <th>Адрес</th>
+                                    <th>Ch</th>
+                                    <th>Диап.</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dmx-tbody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DIP Switch Calculator -->
+            <div id="dip" class="calculator">
+                <h2>DIP Switch калькулятор</h2>
+                
+                <div class="card">
+                    <h3>DMX адрес в DIP переключатели</h3>
+                    <div class="form-group">
+                        <label>DMX адрес (1-512):</label>
+                        <input type="number" id="dip-dmx-input" min="1" max="512" value="1" oninput="calculateDIP()">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Схема нумерации:</label>
+                        <select id="dip-scheme" onchange="calculateDIP()">
+                            <option value="standard">Стандартная (1-10)</option>
+                            <option value="binary">Бинарная (1-9)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="dip-switches" id="dip-switches-container">
+                        <!-- DIP switches will be generated here -->
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Результат:</label>
+                        <input type="text" id="dip-result" readonly>
+                    </div>
+                    
+                    <button onclick="resetDIP()">Сбросить</button>
+                </div>
+            </div>
+
+            <!-- Art-Net Calculator -->
+            <div id="artnet" class="calculator">
+                <h2>Art-Net калькулятор</h2>
+                
+                <div class="card">
+                    <h3>Расчет Art-Net параметров</h3>
+                    
+                    <div class="info-box">
+                        <p><strong>Art-Net адресация:</strong></p>
+                        <p>• <strong>Net (0-127):</strong> Старшая группа, содержит 256 универсов</p>
+                        <p>• <strong>Subnet (0-15):</strong> Подгруппа, содержит 16 универсов</p>
+                        <p>• <strong>Universe (0-15):</strong> Конкретный DMX универс в подгруппе</p>
+                        <p>• <strong>Формула:</strong> Абсолютный Universe = Net × 256 + Subnet × 16 + Universe</p>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Тип нумерации:</label>
+                        <select id="artnet-base" onchange="calculateArtNet()">
+                            <option value="0">0-based (начинается с 0)</option>
+                            <option value="1">1-based (начинается с 1)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="grid grid-3">
+                        <div class="form-group">
+                            <label>Net (0-127):</label>
+                            <input type="number" id="artnet-net" min="0" max="127" value="0" oninput="calculateArtNet()">
+                        </div>
+                        <div class="form-group">
+                            <label>Subnet (0-15):</label>
+                            <input type="number" id="artnet-subnet" min="0" max="15" value="0" oninput="calculateArtNet()">
+                        </div>
+                        <div class="form-group">
+                            <label>Universe (0-15):</label>
+                            <input type="number" id="artnet-universe" min="0" max="15" value="0" oninput="calculateArtNet()">
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label>Абсолютный Universe:</label>
+                            <input type="text" id="artnet-absolute" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>DMX порт:</label>
+                            <input type="text" id="artnet-dmx-port" readonly>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Обратный расчет</h3>
+                    <div class="form-group">
+                        <label>Введите абсолютный Universe:</label>
+                        <input type="number" id="artnet-reverse" min="0" placeholder="Например: 17" oninput="reverseArtNet()">
+                    </div>
+                    <div class="grid grid-3">
+                        <div class="form-group">
+                            <label>Net:</label>
+                            <input type="text" id="reverse-net" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Subnet:</label>
+                            <input type="text" id="reverse-subnet" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Universe:</label>
+                            <input type="text" id="reverse-universe" readonly>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Популярные консоли и их нумерация</h3>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Консоль</th>
+                                    <th>Нумерация</th>
+                                    <th>Особенности</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>grandMA2</td><td>1-based</td><td>Universe 1.001 - 256.256</td></tr>
+                                <tr><td>grandMA3</td><td>1-based</td><td>Universe 1.001 - 1024.256</td></tr>
+                                <tr><td>Avolites</td><td>1-based</td><td>Line 1-64</td></tr>
+                                <tr><td>ETC</td><td>1-based</td><td>Universe 1-64000</td></tr>
+                                <tr><td>Chamsys</td><td>0-based</td><td>Universe 0-255</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Power Consumption Calculator -->
+            <div id="power" class="calculator">
+                <h2>Калькулятор энергопотребления</h2>
+                
+                <div class="card">
+                    <h3>Добавить оборудование</h3>
+                    <div class="form-group">
+                        <label>Название/тип прибора:</label>
+                        <input type="text" id="power-fixture-name" list="fixture-types" placeholder="Например: Clay Paky Sharpy или выберите тип">
+                        <datalist id="fixture-types">
+                            <option value="Spot 250W">
+                            <option value="Spot 350W">
+                            <option value="Wash 575W">
+                            <option value="Wash 700W">
+                            <option value="Beam 230W">
+                            <option value="Beam 280W">
+                            <option value="LED PAR 36x3W">
+                            <option value="LED PAR 54x3W">
+                            <option value="LED Wash 19x15W">
+                            <option value="PAR 64 1000W">
+                            <option value="Fresnel 1000W">
+                            <option value="Fresnel 2000W">
+                            <option value="Profile 750W">
+                        </datalist>
+                    </div>
+                    
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label>Мощность (Вт):</label>
+                            <input type="number" id="power-watts" min="1" placeholder="350">
+                        </div>
+                        <div class="form-group">
+                            <label>Количество:</label>
+                            <input type="number" id="power-quantity" min="1" value="1">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Коэффициент использования (%):</label>
+                        <input type="number" id="power-usage" min="1" max="100" value="100">
+                    </div>
+                    
+                    <button onclick="addPowerFixture()">Добавить</button>
+                    <button class="secondary" onclick="clearPowerTable()">Очистить</button>
+                </div>
+
+                <div class="card">
+                    <h3>Список оборудования</h3>
+                    <div class="table-wrapper">
+                        <table id="power-table">
+                            <thead>
+                                <tr>
+                                    <th>Прибор</th>
+                                    <th>Вт</th>
+                                    <th>Кол</th>
+                                    <th>%</th>
+                                    <th>Итого</th>
+                                </tr>
+                            </thead>
+                            <tbody id="power-tbody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Итоговые расчеты</h3>
+                    <div class="grid grid-2">
+                        <div>
+                            <h4>Общая мощность:</h4>
+                            <p id="total-power" style="font-size: 1.5rem; color: var(--accent);">0 Вт</p>
+                        </div>
+                        <div>
+                            <h4>Ток при 220В:</h4>
+                            <p id="current-220" style="font-size: 1.5rem; color: var(--warning);">0 А</p>
+                        </div>
+                    </div>
+                    
+                    <h4 class="mt-2">Распределение по фазам (380В):</h4>
+                    <div class="grid grid-3">
+                        <div class="phase-box">
+                            <h5>Фаза L1</h5>
+                            <p>Ток: <span id="phase-l1-current">0 А</span></p>
+                            <p>Приборов: <span id="phase-l1-count">0</span></p>
+                        </div>
+                        <div class="phase-box">
+                            <h5>Фаза L2</h5>
+                            <p>Ток: <span id="phase-l2-current">0 А</span></p>
+                            <p>Приборов: <span id="phase-l2-count">0</span></p>
+                        </div>
+                        <div class="phase-box">
+                            <h5>Фаза L3</h5>
+                            <p>Ток: <span id="phase-l3-current">0 А</span></p>
+                            <p>Приборов: <span id="phase-l3-count">0</span></p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-2">
+                        <h4>Рекомендации:</h4>
+                        <p id="power-recommendations">Добавьте оборудование для расчета</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Spacing Calculator -->
+            <div id="spacing" class="calculator">
+                <h2>Калькулятор равномерного развеса</h2>
+                
+                <div class="card">
+                    <h3>Параметры фермы</h3>
+                    <div class="form-group">
+                        <label>Длина фермы (м):</label>
+                        <input type="number" id="spacing-length" min="0.1" value="10" step="0.1" oninput="calculateSpacing()">
+                    </div>
+                    
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label>Количество приборов:</label>
+                            <input type="number" id="spacing-fixtures" min="1" value="8" oninput="calculateSpacing()">
+                        </div>
+                        <div class="form-group">
+                            <label>Отступ от края (м):</label>
+                            <input type="number" id="spacing-offset" min="0" value="0.5" step="0.1" oninput="calculateSpacing()">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Результаты расчета</h3>
+                    <div class="info-box">
+                        <p><strong>Рабочая длина фермы:</strong> <span id="working-length">9 м</span></p>
+                        <p><strong>Расстояние между приборами:</strong> <span id="fixture-spacing">1.125 м</span></p>
+                    </div>
+                    
+                    <h4 class="mt-2">Позиции приборов от левого края:</h4>
+                    <div class="table-wrapper">
+                        <table id="spacing-table">
+                            <thead>
+                                <tr>
+                                    <th>Прибор №</th>
+                                    <th>Позиция (м)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="spacing-tbody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Load Distribution Calculator -->
+            <div id="load" class="calculator">
+                <h2>Калькулятор нагрузки на ферме</h2>
+                
+                <div class="card">
+                    <h3>Параметры фермы</h3>
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label>Длина фермы (м):</label>
+                            <input type="number" id="load-length" min="0.1" value="10" step="0.1" oninput="updateLoadCalculations()">
+                        </div>
+                        <div class="form-group">
+                            <label>Вес фермы (кг):</label>
+                            <input type="number" id="load-truss-weight" min="0" value="200" step="1" oninput="updateLoadCalculations()">
+                        </div>
+                    </div>
+                    
+                    <h4>Точки подвеса (лебедки)</h4>
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label>Позиция от левого края (м):</label>
+                            <input type="number" id="hoist-position" min="0" step="0.1" placeholder="2.5">
+                        </div>
+                        <div class="form-group">
+                            <button onclick="addHoist()">Добавить лебедку</button>
+                        </div>
+                    </div>
+                    
+                    <div class="table-wrapper">
+                        <table id="hoists-table">
+                            <thead>
+                                <tr>
+                                    <th>Лебедка</th>
+                                    <th>Позиция (м)</th>
+                                    <th>Нагрузка (кг)</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="hoists-tbody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Приборы на ферме</h3>
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label>Название прибора:</label>
+                            <input type="text" id="load-fixture-name" placeholder="Spot 250">
+                        </div>
+                        <div class="form-group">
+                            <label>Вес (кг):</label>
+                            <input type="number" id="load-fixture-weight" min="0.1" step="0.1" placeholder="18">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Позиция от левого края (м):</label>
+                        <input type="number" id="load-fixture-position" min="0" step="0.1" placeholder="5">
+                    </div>
+                    <button onclick="addLoadFixture()">Добавить прибор</button>
+                    <button class="secondary" onclick="clearLoadFixtures()">Очистить приборы</button>
+                    
+                    <div class="table-wrapper mt-2">
+                        <table id="load-fixtures-table">
+                            <thead>
+                                <tr>
+                                    <th>Прибор</th>
+                                    <th>Вес (кг)</th>
+                                    <th>Позиция (м)</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="load-fixtures-tbody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Визуализация нагрузки</h3>
+                    <div class="visualization">
+                        <canvas id="load-canvas" width="800" height="250"></canvas>
+                    </div>
+                    <div class="info-box">
+                        <p><strong>Общий вес:</strong> <span id="total-load-weight">0 кг</span></p>
+                        <p><strong>Центр тяжести:</strong> <span id="center-of-gravity">0 м</span></p>
+                        <p id="load-warnings" class="text-warning mt-1"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cable Calculator -->
+            <div id="cables" class="calculator">
+                <h2>Калькулятор кабельных трасс</h2>
+                
+                <div class="card">
+                    <h3>Расчет DMX кабелей</h3>
+                    <div class="info-box">
+                        <p>Рассчитайте необходимую длину DMX кабелей для подключения приборов последовательно</p>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Количество приборов в линии:</label>
+                        <input type="number" id="dmx-cable-fixtures" min="1" value="10" oninput="calculateCables()">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Среднее расстояние между приборами (м):</label>
+                        <input type="number" id="dmx-cable-distance" min="0.1" value="3" step="0.1" oninput="calculateCables()">
+                        <small class="small-text">Учитывайте высоту подвеса и спуски кабеля</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Расстояние от пульта до первого прибора (м):</label>
+                        <input type="number" id="dmx-cable-first" min="0" value="20" step="1" oninput="calculateCables()">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Резерв длины (%):</label>
+                        <input type="number" id="dmx-cable-reserve" min="0" value="20" oninput="calculateCables()">
+                        <small class="small-text">Рекомендуется 20-30% для запаса</small>
+                    </div>
+                    
+                    <div class="info-box">
+                        <p><strong>Необходимая длина DMX кабеля:</strong></p>
+                        <p style="font-size: 1.5rem; color: var(--accent);" id="dmx-cable-result">0 м</p>
+                        <p class="small-text mt-1">Расчет: первый кабель + (кол-во приборов - 1) × среднее расстояние + резерв</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Расчет силовых кабелей</h3>
+                    <div class="info-box">
+                        <p>Рассчитайте необходимую длину силовых кабелей для питания приборов</p>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Количество точек подключения:</label>
+                        <input type="number" id="power-cable-points" min="1" value="10" oninput="calculatePowerCables()">
+                        <small class="small-text">Количество приборов или групп приборов</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Среднее расстояние от распределительного щита (м):</label>
+                        <input type="number" id="power-cable-distance" min="1" value="15" oninput="calculatePowerCables()">
+                        <small class="small-text">Учитывайте маршрут прокладки кабеля</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Резерв длины (%):</label>
+                        <input type="number" id="power-cable-reserve" min="0" value="30" oninput="calculatePowerCables()">
+                        <small class="small-text">Рекомендуется 30% для силовых кабелей</small>
+                    </div>
+                    
+                    <div class="info-box">
+                        <p><strong>Необходимая длина силового кабеля:</strong></p>
+                        <p style="font-size: 1.5rem; color: var(--accent);" id="power-cable-result">0 м</p>
+                        <p class="small-text mt-1">Расчет: кол-во точек × среднее расстояние × (1 + резерв/100)</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Рекомендации по кабелям</h3>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Тип кабеля</th>
+                                    <th>Макс. длина</th>
+                                    <th>Примечания</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>DMX 110Ω</td><td>300м</td><td>С терминатором</td></tr>
+                                <tr><td>Ethernet Cat5e</td><td>100м</td><td>Для Art-Net</td></tr>
+                                <tr><td>Силовой 3×2.5мм²</td><td>50м</td><td>До 16А</td></tr>
+                                <tr><td>Силовой 5×4мм²</td><td>75м</td><td>До 32А</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lighting Angles Calculator -->
+            <div id="angles" class="calculator">
+                <h2>Калькулятор углов освещения</h2>
+                
+                <div class="card">
+                    <h3>Расчет светового пятна</h3>
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label>Угол луча (°):</label>
+                            <input type="number" id="beam-angle" min="1" max="180" value="25" oninput="calculateBeam()">
+                        </div>
+                        <div class="form-group">
+                            <label>Расстояние (м):</label>
+                            <input type="number" id="beam-distance" min="0.1" value="5" step="0.1" oninput="calculateBeam()">
+                        </div>
+                    </div>
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label>Диаметр пятна:</label>
+                            <input type="text" id="beam-diameter" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Площадь покрытия:</label>
+                            <input type="text" id="beam-area" readonly>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Расчет высоты подвеса</h3>
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label>Необходимый диаметр пятна (м):</label>
+                            <input type="number" id="height-diameter" min="0.1" value="3" step="0.1" oninput="calculateHeight()">
+                        </div>
+                        <div class="form-group">
+                            <label>Угол луча прибора (°):</label>
+                            <input type="number" id="height-angle" min="1" max="180" value="25" oninput="calculateHeight()">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Необходимая высота подвеса:</label>
+                        <input type="text" id="height-result" readonly>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Калькулятор перекрытия пятен</h3>
+                    <div class="grid grid-3">
+                        <div class="form-group">
+                            <label>Количество приборов:</label>
+                            <input type="number" id="overlap-fixtures" min="2" value="4" oninput="calculateOverlap()">
+                        </div>
+                        <div class="form-group">
+                            <label>Расстояние между приборами (м):</label>
+                            <input type="number" id="overlap-spacing" min="0.1" value="2" step="0.1" oninput="calculateOverlap()">
+                        </div>
+                        <div class="form-group">
+                            <label>Диаметр пятна (м):</label>
+                            <input type="number" id="overlap-diameter" min="0.1" value="3" step="0.1" oninput="calculateOverlap()">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Процент перекрытия:</label>
+                        <input type="text" id="overlap-result" readonly>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Color Temperature Calculator -->
+            <div id="color" class="calculator">
+                <h2>Конвертер цветовых температур</h2>
+                
+                <div class="card">
+                    <h3>Конвертация температур</h3>
+                    <div class="grid grid-3">
+                        <div class="form-group">
+                            <label>Kelvin (K):</label>
+                            <input type="number" id="kelvin-input" min="1000" max="20000" value="5600" oninput="convertFromKelvin()">
+                        </div>
+                        <div class="form-group">
+                            <label>Mired:</label>
+                            <input type="number" id="mired-input" oninput="convertFromMired()">
+                        </div>
+                        <div class="form-group">
+                            <label>RGB Hex:</label>
+                            <input type="text" id="rgb-hex" placeholder="#FFFFFF" oninput="convertFromRGB()">
+                        </div>
+                    </div>
+                    <div class="visualization" style="height: 100px;" id="color-preview"></div>
+                </div>
+
+                <div class="card">
+                    <h3>Цветокоррекционные фильтры</h3>
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label>Исходная температура (K):</label>
+                            <input type="number" id="filter-from" min="1000" max="20000" value="5600" oninput="calculateFilter()">
+                        </div>
+                        <div class="form-group">
+                            <label>Целевая температура (K):</label>
+                            <input type="number" id="filter-to" min="1000" max="20000" value="3200" oninput="calculateFilter()">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Рекомендуемый фильтр:</label>
+                        <input type="text" id="filter-recommendation" readonly>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Калькулятор смешения LED</h3>
+                    <div class="grid grid-3">
+                        <div class="form-group">
+                            <label>Red (0-255):</label>
+                            <input type="range" id="led-red" min="0" max="255" value="255" oninput="mixLEDColors()">
+                            <span id="led-red-value">255</span>
+                        </div>
+                        <div class="form-group">
+                            <label>Green (0-255):</label>
+                            <input type="range" id="led-green" min="0" max="255" value="255" oninput="mixLEDColors()">
+                            <span id="led-green-value">255</span>
+                        </div>
+                        <div class="form-group">
+                            <label>Blue (0-255):</label>
+                            <input type="range" id="led-blue" min="0" max="255" value="255" oninput="mixLEDColors()">
+                            <span id="led-blue-value">255</span>
+                        </div>
+                    </div>
+                    <div class="visualization" style="height: 100px;" id="led-color-preview"></div>
+                    <div class="form-group">
+                        <label>Приблизительная температура:</label>
+                        <input type="text" id="led-temperature" readonly>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Справочная таблица</h3>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Источник света</th>
+                                    <th>Температура (K)</th>
+                                    <th>Mired</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>Свеча</td><td>1850K</td><td>540</td></tr>
+                                <tr><td>Лампа накаливания 40W</td><td>2650K</td><td>377</td></tr>
+                                <tr><td>Лампа накаливания 100W</td><td>2850K</td><td>351</td></tr>
+                                <tr><td>Галогенная лампа</td><td>3200K</td><td>312</td></tr>
+                                <tr><td>Флуоресцентная теплая</td><td>3000K</td><td>333</td></tr>
+                                <tr><td>Флуоресцентная холодная</td><td>4200K</td><td>238</td></tr>
+                                <tr><td>Дневной свет</td><td>5600K</td><td>179</td></tr>
+                                <tr><td>Облачное небо</td><td>6500K</td><td>154</td></tr>
+                                <tr><td>Тень в ясный день</td><td>8000K</td><td>125</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Global variables
+        let dmxFixtures = [];
+        let powerFixtures = [];
+        let hoists = [];
+        let loadFixtures = [];
+        let currentCalculator = 'dmx';
+
+        // Preset fixture powers
+        const fixturePresets = {
+            'Spot 250W': 350,
+            'Spot 350W': 450,
+            'Wash 575W': 700,
+            'Wash 700W': 850,
+            'Beam 230W': 300,
+            'Beam 280W': 350,
+            'LED PAR 36x3W': 108,
+            'LED PAR 54x3W': 162,
+            'LED Wash 19x15W': 285,
+            'PAR 64 1000W': 1000,
+            'Fresnel 1000W': 1000,
+            'Fresnel 2000W': 2000,
+            'Profile 750W': 750
+        };
+
+        // Navigation functions
+        function toggleMenu() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('active');
+        }
+
+        function showCalculator(calcId, event) {
+            // Hide all calculators
+            document.querySelectorAll('.calculator').forEach(calc => {
+                calc.classList.remove('active');
+            });
+            
+            // Remove active class from all nav items
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Show selected calculator
+            document.getElementById(calcId).classList.add('active');
+            
+            // Add active class to clicked nav item
+            if (event && event.target) {
+                event.target.classList.add('active');
+            }
+            
+            // Close mobile menu
+            if (window.innerWidth <= 768) {
+                document.getElementById('sidebar').classList.remove('active');
+            }
+            
+            currentCalculator = calcId;
+            
+            // Update URL hash
+            window.location.hash = calcId;
+        }
+
+        // DMX Calculator Functions
+        function addDMXFixture() {
+            const name = document.getElementById('dmx-fixture-name').value;
+            const channels = parseInt(document.getElementById('dmx-channels').value);
+            const quantity = parseInt(document.getElementById('dmx-quantity').value);
+            const universe = parseInt(document.getElementById('dmx-universe').value);
+            const startAddress = parseInt(document.getElementById('dmx-start').value);
+            
+            if (!name || !channels || !quantity) {
+                alert('Пожалуйста, заполните все поля');
+                return;
+            }
+            
+            let currentAddress = startAddress;
+            
+            for (let i = 0; i < quantity; i++) {
+                if (currentAddress + channels - 1 > 512) {
+                    alert(`Прибор ${i + 1} выходит за пределы DMX universe (512 каналов)`);
+                    break;
+                }
+                
+                dmxFixtures.push({
+                    id: Date.now() + i,
+                    name: `${name} #${i + 1}`,
+                    universe: universe,
+                    address: currentAddress,
+                    channels: channels,
+                    endAddress: currentAddress + channels - 1
+                });
+                
+                currentAddress += channels;
+            }
+            
+            updateDMXTable();
+            updateDMXUsage();
+            
+            // Update start address for next fixture
+            document.getElementById('dmx-start').value = currentAddress;
+        }
+
+        function updateDMXTable() {
+            const tbody = document.getElementById('dmx-tbody');
+            tbody.innerHTML = '';
+            
+            dmxFixtures.forEach((fixture, index) => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${fixture.name}</td>
+                    <td>U${fixture.universe}</td>
+                    <td>${fixture.address}</td>
+                    <td>${fixture.channels}</td>
+                    <td>${fixture.address}-${fixture.endAddress}</td>
+                `;
+            });
+        }
+
+        function clearDMXTable() {
+            dmxFixtures = [];
+            updateDMXTable();
+            updateDMXUsage();
+            document.getElementById('dmx-start').value = 1;
+        }
+
+        function updateDMXUsage() {
+            const usageDiv = document.getElementById('dmx-usage');
+            const universes = {};
+            
+            // Group fixtures by universe
+            dmxFixtures.forEach(fixture => {
+                if (!universes[fixture.universe]) {
+                    universes[fixture.universe] = [];
+                }
+                universes[fixture.universe].push(fixture);
+            });
+            
+            usageDiv.innerHTML = '';
+            
+            for (let universe in universes) {
+                let maxChannel = 0;
+                universes[universe].forEach(fixture => {
+                    if (fixture.endAddress > maxChannel) {
+                        maxChannel = fixture.endAddress;
+                    }
+                });
+                
+                const percentage = (maxChannel / 512) * 100;
+                const color = percentage > 90 ? 'var(--danger)' : percentage > 70 ? 'var(--warning)' : 'var(--success)';
+                
+                usageDiv.innerHTML += `
+                    <div class="mb-2">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <span>Universe ${universe}</span>
+                            <span>${maxChannel}/512</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${percentage}%; background: ${color};">
+                                ${percentage.toFixed(1)}%
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function exportDMXtoPDF() {
+            if (typeof window.jspdf === 'undefined') {
+                // Fallback to CSV if jsPDF not loaded
+                exportDMXtoCSV();
+                return;
+            }
+            
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Title
+            doc.setFontSize(16);
+            doc.text('DMX Address List', 20, 20);
+            
+            // Date
+            doc.setFontSize(10);
+            doc.text(new Date().toLocaleDateString(), 20, 30);
+            
+            // Table headers
+            doc.setFontSize(12);
+            let y = 45;
+            doc.text('No', 20, y);
+            doc.text('Name', 35, y);
+            doc.text('Universe', 100, y);
+            doc.text('Address', 130, y);
+            doc.text('Channels', 160, y);
+            
+            // Table data
+            doc.setFontSize(10);
+            y += 10;
+            dmxFixtures.forEach((fixture, index) => {
+                if (y > 270) {
+                    doc.addPage();
+                    y = 20;
+                }
+                
+                // Transliterate Russian text
+                const name = transliterate(fixture.name);
+                
+                doc.text((index + 1).toString(), 20, y);
+                doc.text(name, 35, y);
+                doc.text(`Universe ${fixture.universe}`, 100, y);
+                doc.text(fixture.address.toString(), 130, y);
+                doc.text(`${fixture.channels} (${fixture.address}-${fixture.endAddress})`, 160, y);
+                y += 7;
+            });
+            
+            doc.save('dmx_addresses.pdf');
+        }
+
+        function exportDMXtoCSV() {
+            let csv = 'No,Name,Universe,Address,Channels,Range\n';
+            dmxFixtures.forEach((fixture, index) => {
+                csv += `${index + 1},${fixture.name},Universe ${fixture.universe},${fixture.address},${fixture.channels},${fixture.address}-${fixture.endAddress}\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'dmx_addresses.csv';
+            a.click();
+        }
+
+        function transliterate(text) {
+            const rus = 'абвгдеёжзийклмнопрстуфхцчшщъыьэюя';
+            const lat = ['a','b','v','g','d','e','yo','zh','z','i','y','k','l','m','n','o','p','r','s','t','u','f','kh','ts','ch','sh','shch','','y','','e','yu','ya'];
+            
+            return text.split('').map(char => {
+                const index = rus.indexOf(char.toLowerCase());
+                if (index !== -1) {
+                    const result = lat[index];
+                    return char === char.toUpperCase() ? result.charAt(0).toUpperCase() + result.slice(1) : result;
+                }
+                return char;
+            }).join('');
+        }
+
+        // DIP Switch Calculator
+        function calculateDIP() {
+            const dmxAddress = parseInt(document.getElementById('dip-dmx-input').value);
+            const scheme = document.getElementById('dip-scheme').value;
+            
+            if (!dmxAddress || dmxAddress < 1 || dmxAddress > 512) {
+                return;
+            }
+            
+            const container = document.getElementById('dip-switches-container');
+            container.innerHTML = '';
+            
+            let binary = dmxAddress - 1; // DMX is 1-based, DIP is 0-based
+            const switches = [];
+            
+            const numSwitches = scheme === 'binary' ? 9 : 10;
+            
+            for (let i = 0; i < numSwitches; i++) {
+                const value = Math.pow(2, i);
+                const isOn = (binary & value) > 0;
+                switches.push(isOn);
+            }
+            
+            // Create DIP switch visual
+            switches.forEach((isOn, index) => {
+                const switchContainer = document.createElement('div');
+                switchContainer.className = 'dip-switch-container';
+                switchContainer.innerHTML = `
+                    <div class="dip-switch ${isOn ? 'on' : 'off'}" onclick="toggleDIPSwitch(${index})">
+                        <div class="dip-switch-toggle"></div>
+                    </div>
+                    <div class="dip-switch-label">${index + 1}</div>
+                `;
+                container.appendChild(switchContainer);
+            });
+            
+            document.getElementById('dip-result').value = `DMX: ${dmxAddress}`;
+        }
+
+        function toggleDIPSwitch(index) {
+            const switches = document.querySelectorAll('.dip-switch');
+            switches[index].classList.toggle('on');
+            switches[index].classList.toggle('off');
+            
+            // Calculate DMX from switches
+            let dmxAddress = 1;
+            switches.forEach((sw, i) => {
+                if (i < 9 && sw.classList.contains('on')) {
+                    dmxAddress += Math.pow(2, i);
+                }
+            });
+            
+            document.getElementById('dip-dmx-input').value = dmxAddress;
+            document.getElementById('dip-result').value = `DMX: ${dmxAddress}`;
+        }
+
+        function resetDIP() {
+            document.getElementById('dip-dmx-input').value = 1;
+            calculateDIP();
+        }
+
+        // Art-Net Calculator
+        function calculateArtNet() {
+            const base = parseInt(document.getElementById('artnet-base').value);
+            const net = parseInt(document.getElementById('artnet-net').value);
+            const subnet = parseInt(document.getElementById('artnet-subnet').value);
+            const universe = parseInt(document.getElementById('artnet-universe').value);
+            
+            const absolute = (net * 256) + (subnet * 16) + universe + base;
+            
+            document.getElementById('artnet-absolute').value = absolute;
+            document.getElementById('artnet-dmx-port').value = `DMX Port ${universe + base}`;
+        }
+
+        function reverseArtNet() {
+            const absolute = parseInt(document.getElementById('artnet-reverse').value);
+            const base = parseInt(document.getElementById('artnet-base').value);
+            
+            if (!absolute && absolute !== 0) {
+                document.getElementById('reverse-net').value = '';
+                document.getElementById('reverse-subnet').value = '';
+                document.getElementById('reverse-universe').value = '';
+                return;
+            }
+            
+            const adjusted = absolute - base;
+            const net = Math.floor(adjusted / 256);
+            const subnet = Math.floor((adjusted % 256) / 16);
+            const universe = adjusted % 16;
+            
+            document.getElementById('reverse-net').value = net;
+            document.getElementById('reverse-subnet').value = subnet;
+            document.getElementById('reverse-universe').value = universe;
+        }
+
+        // Power Calculator
+        function addPowerFixture() {
+            const nameInput = document.getElementById('power-fixture-name');
+            const name = nameInput.value;
+            let power = parseInt(document.getElementById('power-watts').value);
+            const quantity = parseInt(document.getElementById('power-quantity').value);
+            const usage = parseInt(document.getElementById('power-usage').value);
+            
+            // Check if name matches a preset
+            if (fixturePresets[name] && !power) {
+                power = fixturePresets[name];
+                document.getElementById('power-watts').value = power;
+            }
+            
+            if (!name || !power || !quantity) {
+                alert('Пожалуйста, заполните все поля');
+                return;
+            }
+            
+            powerFixtures.push({
+                id: Date.now(),
+                name: name,
+                power: power,
+                quantity: quantity,
+                usage: usage,
+                total: power * quantity * (usage / 100)
+            });
+            
+            updatePowerTable();
+            calculatePowerTotals();
+        }
+
+        // Update input when preset is selected
+        document.getElementById('power-fixture-name').addEventListener('input', function(e) {
+            const value = e.target.value;
+            if (fixturePresets[value]) {
+                document.getElementById('power-watts').value = fixturePresets[value];
+            }
+        });
+
+        function updatePowerTable() {
+            const tbody = document.getElementById('power-tbody');
+            tbody.innerHTML = '';
+            
+            powerFixtures.forEach(fixture => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${fixture.name}</td>
+                    <td>${fixture.power}</td>
+                    <td>${fixture.quantity}</td>
+                    <td>${fixture.usage}%</td>
+                    <td>${fixture.total.toFixed(0)}W</td>
+                `;
+            });
+        }
+
+        function clearPowerTable() {
+            powerFixtures = [];
+            updatePowerTable();
+            calculatePowerTotals();
+        }
+
+        function calculatePowerTotals() {
+    const totalPower = powerFixtures.reduce((sum, f) => sum + f.total, 0);
+    const current220 = totalPower / 220;
+    
+    document.getElementById('total-power').textContent = `${totalPower.toFixed(0)} Вт`;
+    document.getElementById('current-220').textContent = `${current220.toFixed(1)} А`;
+    
+    // Calculate phase distribution for 3-phase 380V system
+    // For 380V 3-phase: line voltage = 220V (phase to neutral)
+    let phaseLoads = [0, 0, 0];
+    let phaseCounts = [0, 0, 0];
+    
+    // Method 1: Even distribution by fixture count
+    let fixtureIndex = 0;
+    powerFixtures.forEach(fixture => {
+        for (let i = 0; i < fixture.quantity; i++) {
+            const phaseIndex = fixtureIndex % 3;
+            const fixtureLoad = fixture.power * (fixture.usage / 100);
+            phaseLoads[phaseIndex] += fixtureLoad;
+            phaseCounts[phaseIndex]++;
+            fixtureIndex++;
+        }
+    });
+    
+    // Calculate current for each phase (220V phase voltage)
+    const phaseCurrents = phaseLoads.map(load => load / 220);
+    
+    // Update phase displays
+    document.getElementById('phase-l1-current').textContent = `${phaseCurrents[0].toFixed(1)} А`;
+    document.getElementById('phase-l1-count').textContent = phaseCounts[0];
+    document.getElementById('phase-l2-current').textContent = `${phaseCurrents[1].toFixed(1)} А`;
+    document.getElementById('phase-l2-count').textContent = phaseCounts[1];
+    document.getElementById('phase-l3-current').textContent = `${phaseCurrents[2].toFixed(1)} А`;
+    document.getElementById('phase-l3-count').textContent = phaseCounts[2];
+    
+    // Check phase imbalance
+    const maxPhaseCurrent = Math.max(...phaseCurrents);
+    const minPhaseCurrent = Math.min(...phaseCurrents);
+    const imbalance = maxPhaseCurrent - minPhaseCurrent;
+    
+    // Recommendations with phase imbalance check
+    const recommendations = document.getElementById('power-recommendations');
+    if (totalPower === 0) {
+        recommendations.textContent = 'Добавьте оборудование для расчета';
+    } else {
+        let recommendationText = '';
+        
+        // Current capacity recommendations
+        if (maxPhaseCurrent > 63) {
+            recommendationText = '<span class="text-danger">⚠️ Превышен ток 63А на фазе! Требуется распределение на несколько вводов</span>';
+        } else if (maxPhaseCurrent > 32) {
+            recommendationText = '<span class="text-warning">⚠️ Рекомендуется 63А автомат на фазу</span>';
+        } else if (maxPhaseCurrent > 16) {
+            recommendationText = '<span class="text-warning">Рекомендуется 32А автомат на фазу</span>';
+        } else {
+            recommendationText = '<span class="text-success">✓ Достаточно 16А автомата на фазу</span>';
+        }
+        
+        // Phase imbalance warning
+        if (imbalance > 10) {
+            recommendationText += '<br><span class="text-warning">⚠️ Дисбаланс фаз > 10А. Рекомендуется перераспределить нагрузку</span>';
+        }
+        
+        // Total power in kW for reference
+        recommendationText += `<br><span class="small-text">Общая мощность: ${(totalPower/1000).toFixed(2)} кВт</span>`;
+        
+        // Required 3-phase connection power
+        const required3PhPower = Math.ceil(maxPhaseCurrent / 16) * 16; // Round up to standard breaker size
+        recommendationText += `<br><span class="small-text">Рекомендуемый 3-фазный ввод: 3×${required3PhPower}А</span>`;
+        
+        recommendations.innerHTML = recommendationText;
+    }
+} {
+            const totalPower = powerFixtures.reduce((sum, f) => sum + f.total, 0);
+            const current220 = totalPower / 220;
+            
+            document.getElementById('total-power').textContent = `${totalPower.toFixed(0)} Вт`;
+            document.getElementById('current-220').textContent = `${current220.toFixed(1)} А`;
+            
+            // Calculate phase distribution
+            const totalFixtures = powerFixtures.reduce((sum, f) => sum + f.quantity, 0);
+            const fixturesPerPhase = Math.ceil(totalFixtures / 3);
+            
+            // Distribute fixtures evenly across phases
+            let phaseLoads = [0, 0, 0];
+            let phaseCounts = [0, 0, 0];
+            let currentPhase = 0;
+            
+            powerFixtures.forEach(fixture => {
+                for (let i = 0; i < fixture.quantity; i++) {
+                    const fixtureLoad = fixture.power * (fixture.usage / 100);
+                    phaseLoads[currentPhase] += fixtureLoad;
+                    phaseCounts[currentPhase]++;
+                    currentPhase = (currentPhase + 1) % 3;
+                }
+            });
+            
+            // Update phase displays
+            document.getElementById('phase-l1-current').textContent = `${(phaseLoads[0] / 220).toFixed(1)} А`;
+            document.getElementById('phase-l1-count').textContent = phaseCounts[0];
+            document.getElementById('phase-l2-current').textContent = `${(phaseLoads[1] / 220).toFixed(1)} А`;
+            document.getElementById('phase-l2-count').textContent = phaseCounts[1];
+            document.getElementById('phase-l3-current').textContent = `${(phaseLoads[2] / 220).toFixed(1)} А`;
+            document.getElementById('phase-l3-count').textContent = phaseCounts[2];
+            
+            // Recommendations
+            const recommendations = document.getElementById('power-recommendations');
+            if (totalPower === 0) {
+                recommendations.textContent = 'Добавьте оборудование для расчета';
+            } else if (current220 > 63) {
+                recommendations.innerHTML = `<span class="text-danger">⚠️ Требуется распределение на несколько вводов</span>`;
+            } else if (current220 > 32) {
+                recommendations.innerHTML = `<span class="text-warning">⚠️ Рекомендуется 63А ввод</span>`;
+            } else if (current220 > 16) {
+                recommendations.innerHTML = `<span class="text-warning">Рекомендуется 32А ввод</span>`;
+            } else {
+                recommendations.innerHTML = `<span class="text-success">✓ Достаточно 16А ввода</span>`;
+            }
+        }
+
+        // Spacing Calculator
+        function calculateSpacing() {
+            const length = parseFloat(document.getElementById('spacing-length').value);
+            const fixtures = parseInt(document.getElementById('spacing-fixtures').value);
+            const offset = parseFloat(document.getElementById('spacing-offset').value);
+            
+            if (!length || !fixtures) return;
+            
+            const workingLength = length - (2 * offset);
+            const spacing = workingLength / (fixtures - 1);
+            
+            document.getElementById('working-length').textContent = `${workingLength.toFixed(2)} м`;
+            document.getElementById('fixture-spacing').textContent = `${spacing.toFixed(3)} м`;
+            
+            // Update table
+            const tbody = document.getElementById('spacing-tbody');
+            tbody.innerHTML = '';
+            
+            for (let i = 0; i < fixtures; i++) {
+                const position = offset + (i * spacing);
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>Прибор ${i + 1}</td>
+                    <td>${position.toFixed(3)}</td>
+                `;
+            }
+        }
+
+        // Load Distribution Calculator
+        function addHoist() {
+            const position = parseFloat(document.getElementById('hoist-position').value);
+            
+            if (!position && position !== 0) {
+                alert('Укажите позицию лебедки');
+                return;
+            }
+            
+            hoists.push({
+                id: Date.now(),
+                position: position,
+                load: 0
+            });
+            
+            updateHoistsTable();
+            updateLoadCalculations();
+        }
+
+        function updateHoistsTable() {
+            const tbody = document.getElementById('hoists-tbody');
+            tbody.innerHTML = '';
+            
+            hoists.forEach((hoist, index) => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>Лебедка ${index + 1}</td>
+                    <td>${hoist.position.toFixed(2)}</td>
+                    <td id="hoist-load-${hoist.id}">${hoist.load.toFixed(1)}</td>
+                    <td><button class="danger" onclick="removeHoist(${hoist.id})">×</button></td>
+                `;
+            });
+        }
+
+        function removeHoist(id) {
+            hoists = hoists.filter(h => h.id !== id);
+            updateHoistsTable();
+            updateLoadCalculations();
+        }
+
+        function addLoadFixture() {
+            const name = document.getElementById('load-fixture-name').value;
+            const weight = parseFloat(document.getElementById('load-fixture-weight').value);
+            const position = parseFloat(document.getElementById('load-fixture-position').value);
+            
+            if (!name || !weight || (!position && position !== 0)) {
+                alert('Заполните все поля');
+                return;
+            }
+            
+            loadFixtures.push({
+                id: Date.now(),
+                name: name,
+                weight: weight,
+                position: position
+            });
+            
+            updateLoadFixturesTable();
+            updateLoadCalculations();
+        }
+
+        function updateLoadFixturesTable() {
+            const tbody = document.getElementById('load-fixtures-tbody');
+            tbody.innerHTML = '';
+            
+            loadFixtures.forEach(fixture => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${fixture.name}</td>
+                    <td>${fixture.weight}</td>
+                    <td>${fixture.position.toFixed(2)}</td>
+                    <td><button class="danger" onclick="removeLoadFixture(${fixture.id})">×</button></td>
+                `;
+            });
+        }
+
+        function removeLoadFixture(id) {
+            loadFixtures = loadFixtures.filter(f => f.id !== id);
+            updateLoadFixturesTable();
+            updateLoadCalculations();
+        }
+
+        function clearLoadFixtures() {
+            loadFixtures = [];
+            updateLoadFixturesTable();
+            updateLoadCalculations();
+        }
+
+        function updateLoadCalculations() {
+            const trussLength = parseFloat(document.getElementById('load-length').value) || 10;
+            const trussWeight = parseFloat(document.getElementById('load-truss-weight').value) || 0;
+            
+            // Calculate total weight
+            const totalFixtureWeight = loadFixtures.reduce((sum, f) => sum + f.weight, 0);
+            const totalWeight = totalFixtureWeight + trussWeight;
+            
+            document.getElementById('total-load-weight').textContent = `${totalWeight.toFixed(1)} кг`;
+            
+            // Calculate center of gravity
+            let momentSum = trussWeight * (trussLength / 2); // Truss center
+            loadFixtures.forEach(f => {
+                momentSum += f.weight * f.position;
+            });
+            const centerOfGravity = totalWeight > 0 ? momentSum / totalWeight : 0;
+            
+            document.getElementById('center-of-gravity').textContent = `${centerOfGravity.toFixed(2)} м`;
+            
+            // Calculate hoist loads using statics
+            if (hoists.length > 0) {
+                calculateHoistLoads(trussLength, trussWeight, totalWeight, centerOfGravity);
+            }
+            
+            // Update visualization
+            updateLoadVisualization(trussLength, centerOfGravity);
+        }
+
+        function calculateHoistLoads(trussLength, trussWeight, totalWeight, centerOfGravity) {
+            // Reset loads
+            hoists.forEach(h => h.load = 0);
+            
+            if (hoists.length === 1) {
+                // Single hoist takes all load
+                hoists[0].load = totalWeight;
+            } else if (hoists.length === 2) {
+                // Two-point support - use moments
+                const h1 = hoists[0];
+                const h2 = hoists[1];
+                const distance = Math.abs(h2.position - h1.position);
+                
+                if (distance > 0) {
+                    // Calculate loads using moments about each hoist
+                    h2.load = (totalWeight * Math.abs(centerOfGravity - h1.position)) / distance;
+                    h1.load = totalWeight - h2.load;
+                }
+            } else {
+                // Multiple hoists - simplified distribution
+                // Sort hoists by position
+                hoists.sort((a, b) => a.position - b.position);
+                
+                // Distribute load based on proximity to center of gravity
+                const totalDistance = hoists.reduce((sum, h) => {
+                    const dist = Math.abs(h.position - centerOfGravity);
+                    return sum + (dist > 0 ? 1/dist : 1000);
+                }, 0);
+                
+                hoists.forEach(h => {
+                    const dist = Math.abs(h.position - centerOfGravity);
+                    const weight = dist > 0 ? 1/dist : 1000;
+                    h.load = totalWeight * (weight / totalDistance);
+                });
+            }
+            
+            // Update table and check warnings
+            let warnings = [];
+            hoists.forEach((hoist, index) => {
+                const cell = document.getElementById(`hoist-load-${hoist.id}`);
+                if (cell) {
+                    cell.textContent = hoist.load.toFixed(1);
+                    
+                    // Color code based on load
+                    if (hoist.load > 500) {
+                        cell.style.color = 'var(--danger)';
+                        warnings.push(`Лебедка ${index + 1}: превышена нагрузка 500кг`);
+                    } else if (hoist.load > 350) {
+                        cell.style.color = 'var(--warning)';
+                    } else {
+                        cell.style.color = 'var(--success)';
+                    }
+                }
+            });
+            
+            // Display warnings
+            const warningsEl = document.getElementById('load-warnings');
+            warningsEl.textContent = warnings.length > 0 ? '⚠️ ' + warnings.join(', ') : '';
+        }
+
+        function updateLoadVisualization(trussLength, centerOfGravity) {
+            const canvas = document.getElementById('load-canvas');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Scale
+            const scale = 700 / trussLength;
+            const offsetX = 50;
+            const trussY = 100;
+            
+            // Draw truss
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.moveTo(offsetX, trussY);
+            ctx.lineTo(offsetX + trussLength * scale, trussY);
+            ctx.stroke();
+            
+            // Draw hoists
+            ctx.strokeStyle = '#00a8ff';
+            ctx.lineWidth = 3;
+            hoists.forEach((hoist, index) => {
+                const x = offsetX + hoist.position * scale;
+                
+                // Draw hoist line
+                ctx.beginPath();
+                ctx.moveTo(x, 30);
+                ctx.lineTo(x, trussY);
+                ctx.stroke();
+                
+                // Draw hoist
+                ctx.fillStyle = '#00a8ff';
+                ctx.fillRect(x - 15, 20, 30, 20);
+                
+                // Label with load
+                ctx.fillStyle = '#fff';
+                ctx.font = '10px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(`H${index + 1}`, x, 35);
+                ctx.fillText(`${hoist.load.toFixed(0)}kg`, x, 50);
+            });
+            
+            // Draw fixtures
+            ctx.fillStyle = '#ff9800';
+            loadFixtures.forEach(fixture => {
+                const x = offsetX + fixture.position * scale;
+                
+                // Draw fixture
+                ctx.fillRect(x - 10, trussY + 10, 20, 20);
+                
+                // Weight label
+                ctx.fillStyle = '#fff';
+                ctx.font = '9px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(`${fixture.weight}kg`, x, trussY + 45);
+                ctx.fillStyle = '#ff9800';
+            });
+            
+            // Draw center of gravity
+            if (!isNaN(centerOfGravity) && centerOfGravity >= 0 && centerOfGravity <= trussLength) {
+                const cgX = offsetX + centerOfGravity * scale;
+                ctx.strokeStyle = '#f44336';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(cgX, trussY - 20);
+                ctx.lineTo(cgX, trussY + 60);
+                ctx.stroke();
+                
+                ctx.fillStyle = '#f44336';
+                ctx.font = '10px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('CG', cgX, trussY - 25);
+            }
+        }
+
+        // Cable Calculator
+        function calculateCables() {
+            const fixtures = parseInt(document.getElementById('dmx-cable-fixtures').value);
+            const distance = parseFloat(document.getElementById('dmx-cable-distance').value);
+            const first = parseFloat(document.getElementById('dmx-cable-first').value);
+            const reserve = parseInt(document.getElementById('dmx-cable-reserve').value);
+            
+            // Calculate: first cable + connections between fixtures + reserve
+            const connectionsLength = (fixtures - 1) * distance;
+            const totalLength = (first + connectionsLength) * (1 + reserve / 100);
+            
+            document.getElementById('dmx-cable-result').textContent = `${totalLength.toFixed(1)} м`;
+        }
+
+        function calculatePowerCables() {
+            const points = parseInt(document.getElementById('power-cable-points').value);
+            const distance = parseFloat(document.getElementById('power-cable-distance').value);
+            const reserve = parseInt(document.getElementById('power-cable-reserve').value);
+            
+            const totalLength = points * distance * (1 + reserve / 100);
+            
+            document.getElementById('power-cable-result').textContent = `${totalLength.toFixed(1)} м`;
+        }
+
+        // Angle Calculator
+        function calculateBeam() {
+            const angle = parseFloat(document.getElementById('beam-angle').value);
+            const distance = parseFloat(document.getElementById('beam-distance').value);
+            
+            const radians = (angle * Math.PI) / 180;
+            const diameter = 2 * distance * Math.tan(radians / 2);
+            const area = Math.PI * Math.pow(diameter / 2, 2);
+            
+            document.getElementById('beam-diameter').value = `${diameter.toFixed(2)} м`;
+            document.getElementById('beam-area').value = `${area.toFixed(2)} м²`;
+        }
+
+        function calculateHeight() {
+            const diameter = parseFloat(document.getElementById('height-diameter').value);
+            const angle = parseFloat(document.getElementById('height-angle').value);
+            
+            const radians = (angle * Math.PI) / 180;
+            const height = diameter / (2 * Math.tan(radians / 2));
+            
+            document.getElementById('height-result').value = `${height.toFixed(2)} м`;
+        }
+
+        function calculateOverlap() {
+            const fixtures = parseInt(document.getElementById('overlap-fixtures').value);
+            const spacing = parseFloat(document.getElementById('overlap-spacing').value);
+            const diameter = parseFloat(document.getElementById('overlap-diameter').value);
+            
+            const overlap = ((diameter - spacing) / diameter) * 100;
+            
+            document.getElementById('overlap-result').value = overlap > 0 ? `${overlap.toFixed(1)}%` : 'Нет перекрытия';
+        }
+
+        // Color Temperature Calculator
+        function kelvinToRGB(kelvin) {
+            const temp = kelvin / 100;
+            let red, green, blue;
+            
+            if (temp <= 66) {
+                red = 255;
+                green = temp;
+                green = 99.4708025861 * Math.log(green) - 161.1195681661;
+                
+                if (temp <= 19) {
+                    blue = 0;
+                } else {
+                    blue = temp - 10;
+                    blue = 138.5177312231 * Math.log(blue) - 305.0447927307;
+                }
+            } else {
+                red = temp - 60;
+                red = 329.698727446 * Math.pow(red, -0.1332047592);
+                
+                green = temp - 60;
+                green = 288.1221695283 * Math.pow(green, -0.0755148492);
+                
+                blue = 255;
+            }
+            
+            return {
+                r: Math.max(0, Math.min(255, Math.round(red))),
+                g: Math.max(0, Math.min(255, Math.round(green))),
+                b: Math.max(0, Math.min(255, Math.round(blue)))
+            };
+        }
+
+        function rgbToHex(r, g, b) {
+            return '#' + [r, g, b].map(x => {
+                const hex = x.toString(16);
+                return hex.length === 1 ? '0' + hex : hex;
+            }).join('');
+        }
+
+        function convertFromKelvin() {
+            const kelvin = parseInt(document.getElementById('kelvin-input').value);
+            if (!kelvin) return;
+            
+            const mired = 1000000 / kelvin;
+            const rgb = kelvinToRGB(kelvin);
+            const hex = rgbToHex(rgb.r, rgb.g, rgb.b);
+            
+            document.getElementById('mired-input').value = mired.toFixed(0);
+            document.getElementById('rgb-hex').value = hex;
+            
+            const preview = document.getElementById('color-preview');
+            preview.style.background = hex;
+        }
+
+        function convertFromMired() {
+            const mired = parseInt(document.getElementById('mired-input').value);
+            if (!mired) return;
+            
+            const kelvin = 1000000 / mired;
+            document.getElementById('kelvin-input').value = kelvin.toFixed(0);
+            convertFromKelvin();
+        }
+
+        function convertFromRGB() {
+            const hex = document.getElementById('rgb-hex').value;
+            if (!hex || !hex.match(/^#[0-9A-F]{6}$/i)) return;
+            
+            const preview = document.getElementById('color-preview');
+            preview.style.background = hex;
+            
+            // Approximate kelvin from RGB (simplified)
+            const r = parseInt(hex.substr(1, 2), 16);
+            const g = parseInt(hex.substr(3, 2), 16);
+            const b = parseInt(hex.substr(5, 2), 16);
+            
+            let kelvin = 2000;
+            if (r > b) {
+                kelvin = 2000 + (r - b) * 20;
+            } else {
+                kelvin = 6500 + (b - r) * 30;
+            }
+            
+            document.getElementById('kelvin-input').value = kelvin;
+            document.getElementById('mired-input').value = (1000000 / kelvin).toFixed(0);
+        }
+
+        function calculateFilter() {
+            const from = parseInt(document.getElementById('filter-from').value);
+            const to = parseInt(document.getElementById('filter-to').value);
+            
+            if (!from || !to) return;
+            
+            const miredShift = (1000000 / to) - (1000000 / from);
+            let recommendation = '';
+            
+            if (Math.abs(miredShift) < 10) {
+                recommendation = 'Фильтр не требуется';
+            } else if (miredShift > 0) {
+                // Need to warm up (CTO)
+                if (miredShift > 200) recommendation = 'Full CTO';
+                else if (miredShift > 150) recommendation = '3/4 CTO';
+                else if (miredShift > 100) recommendation = '1/2 CTO';
+                else if (miredShift > 50) recommendation = '1/4 CTO';
+                else recommendation = '1/8 CTO';
+            } else {
+                // Need to cool down (CTB)
+                miredShift = Math.abs(miredShift);
+                if (miredShift > 200) recommendation = 'Full CTB';
+                else if (miredShift > 150) recommendation = '3/4 CTB';
+                else if (miredShift > 100) recommendation = '1/2 CTB';
+                else if (miredShift > 50) recommendation = '1/4 CTB';
+                else recommendation = '1/8 CTB';
+            }
+            
+            document.getElementById('filter-recommendation').value = recommendation;
+        }
+
+        function mixLEDColors() {
+            const red = parseInt(document.getElementById('led-red').value);
+            const green = parseInt(document.getElementById('led-green').value);
+            const blue = parseInt(document.getElementById('led-blue').value);
+            
+            document.getElementById('led-red-value').textContent = red;
+            document.getElementById('led-green-value').textContent = green;
+            document.getElementById('led-blue-value').textContent = blue;
+            
+            const hex = rgbToHex(red, green, blue);
+            const preview = document.getElementById('led-color-preview');
+            preview.style.background = hex;
+            
+            // Approximate color temperature
+            let kelvin = 6500;
+            if (red > blue) {
+                kelvin = 2000 + (red - blue) * 20;
+            } else if (blue > red) {
+                kelvin = 6500 + (blue - red) * 30;
+            }
+            
+            document.getElementById('led-temperature').value = `≈ ${kelvin}K`;
+        }
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            // Initialize calculators
+            calculateDIP();
+            calculateArtNet();
+            calculateSpacing();
+            calculateCables();
+            calculatePowerCables();
+            calculateBeam();
+            calculateHeight();
+            calculateOverlap();
+            convertFromKelvin();
+            calculateFilter();
+            mixLEDColors();
+            updateLoadCalculations();
+            
+            // Check for hash in URL
+            if (window.location.hash) {
+                const calcId = window.location.hash.substring(1);
+                if (document.getElementById(calcId)) {
+                    // Find nav item and trigger click
+                    const navItems = document.querySelectorAll('.nav-item');
+                    navItems.forEach(item => {
+                        if (item.getAttribute('onclick').includes(calcId)) {
+                            item.click();
+                        }
+                    });
+                }
+            }
+        });
+    </script>
+</body>
+</html>
